@@ -1,60 +1,29 @@
-
 .intel_syntax noprefix
 
-; In this level you will be provided with a contiguous region of memory again and will loop
-; over each performing a conditional operation till a zero byte is reached.
-; All of which will be contained in a function!
+str_lower:
+        push    rbp                             ;save base pointer (from the caller)
+        mov     rbp,    rsp                     ;create new base pointer
+        mov     r8,     rdi                     ;copy rdi value to r8
+        mov     rcx,    0x0                     ;set rcx value to 0
+        cmp     r8,     0x0                     ;compare r8 with null
+        je      .done                           ;jump to .done if equal
 
-; A function is a callable segment of code that does not destroy control flow.
+.while_loop:
+        cmp     BYTE PTR [r8],  0x00            ;compare byte value of r8 register with null
+        je      .done                           ;end loop if byte value of r8 is null
+        cmp     BYTE PTR [r8],  0x5A            ;compare byte value of r8 with 0x5A
+        jg      .next_char                      ;jump to .next_car if greater than 0x5A
+        inc     rcx                             ;increase rcx by 1
+        mov     dil,    BYTE PTR [r8]           ;store byte of r8 register to dil register as parameter
+        mov     rax,    0x403000                ;copy memory address reference to foo to rax
+        call    rax                             ;call foo
+        mov     BYTE PTR [r8],  al              ;modify value of byte that r8 is holding
 
-; Functions use the instructions "call" and "ret".
+.next_char:
+        inc     r8                              ;set up r8 reference to next byte
+        jmp     .while_loop                     ;continue loop
 
-; The "call" instruction pushes the memory address of the next instruction onto
-; the stack and then jumps to the value stored in the first argument.
-
-; Let's use the following instructions as an example:
-;   0x1021 mov rax, 0x400000
-;   0x1028 call rax
-;   0x102a mov [rsi], rax
-
-; 1. call pushes 0x102a, the address of the next instruction, onto the stack.
-; 2. call jumps to 0x400000, the value stored in rax.
-
-; The "ret" instruction is the opposite of "call".
-
-; ret pops the top value off of the stack and jumps to it.
-
-; Let's use the following instructions and stack as an example:
-
-;                               Stack ADDR  VALUE
-;   0x103f mov rax, rdx         RSP + 0x8   0xdeadbeef
-;   0x1042 ret                  RSP + 0x0   0x0000102a
-
-; Here, ret will jump to 0x102a
-
-; Please implement the following logic:
-;   str_lower(src_addr):
-;     i = 0
-;     if src_addr != 0:
-;       while [src_addr] != 0x00:
-;         if [src_addr] <= 0x5a:
-;           [src_addr] = foo([src_addr])
-;           i += 1
-;         src_addr += 1
-;     return i
-
-; foo is provided at 0x403000.
-; foo takes a single argument as a value and returns a value.
-
-; All functions (foo and str_lower) must follow the Linux amd64 calling convention (also known as System V AMD64 ABI):
-;   https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI
-
-; Therefore, your function str_lower should look for src_addr in rdi and place the function return in rax.
-
-; An important note is that src_addr is an address in memory (where the string is located) and [src_addr] refers to the byte that exists at src_addr.
-
-; Therefore, the function foo accepts a byte as its first argument and returns a byte.
-
-; We will now run multiple tests on your code, here is an example run:
-;   (data) [0x404000] = {10 random bytes},
-;   rdi = 0x404000
+.done: 
+        mov     rax,    rcx                     ;copy value from rcx to rax
+        leave                                   ;equivalent to mov rsp, rbp -> pop rbp
+        ret                                     ;return to the caller
